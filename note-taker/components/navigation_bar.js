@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Image, StyleSheet } from "react-native";
 
 import Page1 from "./HomePage";
-import Page2 from "./Page2";
+import Page2 from "./AddTask";
 import Page3 from "./Page3";
 
 const Tab = createBottomTabNavigator();

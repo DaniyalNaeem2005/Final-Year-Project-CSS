@@ -9,7 +9,7 @@ export default function TopBanner() {
           source={require("../assets/notes_logo.png")}
           style={styles.logo}
         />
-        <Text style={styles.title}>TrustBite</Text>
+        <Text style={styles.title}>Noteify</Text>
       </View>
     </SafeAreaView>
   );
