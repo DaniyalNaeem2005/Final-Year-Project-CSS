@@ -5,6 +5,7 @@ import { Image, StyleSheet } from "react-native";
 import Page1 from "./HomePage";
 import Page2 from "./AddTask";
 import TaskList from "./TaskList";
+import MapScreen from "./MapScreen"
 
 const Tab = createBottomTabNavigator();
 
@@ -54,6 +55,18 @@ export default function NavigationBar() {
             <Image
               source={require("../assets/dashboard.png")} // Dummy icon
               style={{ width: 23, height: 23, tintColor: color }}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Map"
+        component={MapScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require("../assets/home.png")} // Dummy icon
+              style={{ width: 25, height: 25, tintColor: color }}
             />
           ),
         }}
