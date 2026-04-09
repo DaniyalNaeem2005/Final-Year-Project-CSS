@@ -168,10 +168,36 @@ export default function TaskList() {
       )}
 
       {tasks.length === 0 ? (
-        <Text style={styles.emptyText}>No tasks added yet.</Text>
-      ) : (
-        tasks.map((item) => renderTaskCard(item))
-      )}
+  <Text style={styles.emptyText}>No tasks added yet.</Text>
+) : groupedTasks ? (
+  <>
+    {/* HIGH PRIORITY */}
+    {groupedTasks.High?.length > 0 && (
+      <>
+        <Text style={styles.groupHeader}>🔥 High Priority</Text>
+        {groupedTasks.High.map((item) => renderTaskCard(item))}
+      </>
+    )}
+
+    {/* MEDIUM PRIORITY */}
+    {groupedTasks.Medium?.length > 0 && (
+      <>
+        <Text style={styles.groupHeader}>⚡ Medium Priority</Text>
+        {groupedTasks.Medium.map((item) => renderTaskCard(item))}
+      </>
+    )}
+
+    {/* LOW PRIORITY */}
+    {groupedTasks.Low?.length > 0 && (
+      <>
+        <Text style={styles.groupHeader}>🌱 Low Priority</Text>
+        {groupedTasks.Low.map((item) => renderTaskCard(item))}
+      </>
+    )}
+  </>
+) : (
+  tasks.map((item) => renderTaskCard(item))
+)}
     </ScrollView>
   );
 }
@@ -183,6 +209,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFF4E2",
     paddingHorizontal: 20,
+    marginBottom: '15%'
   },
 
   heading: {
@@ -286,4 +313,11 @@ const styles = StyleSheet.create({
     marginTop: 50,
     color: "#777",
   },
+  groupHeader: {
+  fontSize: 18,
+  fontWeight: "bold",
+  marginTop: 15,
+  marginBottom: 5,
+  color: "#333",
+},
 });
