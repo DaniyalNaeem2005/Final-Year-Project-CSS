@@ -119,26 +119,37 @@ export default function TaskList() {
 
       {/* ✅ NEARBY INFO CLICKABLE */}
       {nearbyInfo[item.id] && nearbyInfo[item.id].places?.length > 0 && (
-        <TouchableOpacity
-          onPress={() => {
-            const places = nearbyInfo[item.id].places;
-            if (Platform.OS === "web") {
-              // Web: open Google Maps
-              const { lat, lon, name } = places[0];
-              const mapLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}&query_place_id=${name}`;
-              Linking.openURL(mapLink);
-            } else {
-              // Mobile: navigate to Map tab
-              navigation.navigate("Map", { places, taskName: item.taskName });
-            }
-          }}
-        >
-          <Text style={{ color: "green", marginTop: 5 }}>
-            📍 {nearbyInfo[item.id].count} {nearbyInfo[item.id].type} place
-            {nearbyInfo[item.id].count > 1 ? "s" : ""} nearby
-          </Text>
-        </TouchableOpacity>
-      )}
+  <>
+    <TouchableOpacity
+     onPress={() => {
+  const places = nearbyInfo[item.id].places;
+  const place = places[0];
+
+  if (Platform.OS === "web") {
+    if (place?.mapLink) {
+      Linking.openURL(place.mapLink);
+    } else {
+      alert("No map link available");
+    }
+  } else {
+    navigation.navigate("Map", { places, taskName: item.taskName });
+  }
+}}
+    >
+      <Text style={{ color: "green", marginTop: 5 }}>
+  📍 Find {nearbyInfo[item.id].type} places near you
+</Text>
+    </TouchableOpacity>
+
+    {/* ✅ PREVIEW */}
+    {nearbyInfo[item.id].places.slice(0, 2).map((place, index) => (
+      <Text key={index} style={{ fontSize: 12, color: "#666" }}>
+        • {place.name || place.address || "Nearby place"}
+      </Text>
+    ))}
+  </>
+)}
+      
 
       <TouchableOpacity
         style={styles.deleteButton}

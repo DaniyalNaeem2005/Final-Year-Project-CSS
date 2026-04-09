@@ -31,25 +31,46 @@ export const getUserLocation = async () => {
 export const getPlaceType = (taskName) => {
   const text = taskName.toLowerCase();
 
+  // 🛒 Grocery / shopping
   if (
     text.includes("grocery") ||
     text.includes("groceries") ||
     text.includes("milk") ||
-    text.includes("shopping")
+    text.includes("shopping") ||
+    text.includes("supermarket")
   ) {
     return "grocery";
   }
 
-  if (text.includes("gym") || text.includes("workout")) {
+  // 🏋️ Gym
+  if (
+    text.includes("gym") ||
+    text.includes("workout") ||
+    text.includes("fitness")
+  ) {
     return "gym";
   }
 
+  // 🍽️ Food
   if (
     text.includes("eat") ||
     text.includes("food") ||
-    text.includes("restaurant")
+    text.includes("restaurant") ||
+    text.includes("dinner") ||
+    text.includes("lunch")
   ) {
     return "restaurant";
+  }
+
+  // ✏️ Stationery / books
+  if (
+    text.includes("stationery") ||
+    text.includes("books") ||
+    text.includes("notebook") ||
+    text.includes("print") ||
+    text.includes("photocopy")
+  ) {
+    return "stationery";
   }
 
   return null;
@@ -61,18 +82,22 @@ export const getPlaceType = (taskName) => {
 export const findNearbyPlaces = async (lat, lon, type) => {
   // 🌐 WEB FALLBACK: Return Google Maps link
   if (Platform.OS === "web") {
-    let query = "store";
-    if (type === "grocery") query = "grocery";
-    if (type === "gym") query = "gym";
-    if (type === "restaurant") query = "restaurant";
+  let query = "store";
 
-    return [
-      {
-        name: `See nearby ${type} on Google Maps`,
-        mapLink: `https://www.google.com/maps/search/${query}+near+${lat},${lon}`,
-      },
-    ];
-  }
+  if (type === "grocery") query = "grocery store";
+  if (type === "gym") query = "gym";
+  if (type === "restaurant") query = "restaurant";
+  if (type === "stationery") query = "stationery shop";
+
+  return [
+    {
+      name: `Search ${query} nearby`,
+      mapLink: `https://www.google.com/maps/search/${encodeURIComponent(
+        query
+      )}/@${lat},${lon},14z`,
+    },
+  ];
+}
 
   // MOBILE: Use Foursquare API
   let category = "";
@@ -85,6 +110,9 @@ export const findNearbyPlaces = async (lat, lon, type) => {
       break;
     case "restaurant":
       category = "13065"; // restaurants
+      break;
+    case "stationery":
+      category = "17114"; // bookstore / office supplies
       break;
     default:
       return [];
@@ -102,14 +130,15 @@ export const findNearbyPlaces = async (lat, lon, type) => {
 
     const data = await res.json();
     console.log("✅ Places found:", data.results?.length || 0);
-
+    console.log("PLACES FOR TASK:", task.taskName, places);
     return (data.results || []).map((place) => ({
       id: place.fsq_id,
-      name: place.name,
-      lat: place.geocodes.main.latitude,
-      lon: place.geocodes.main.longitude,
-      address: place.location.formatted_address,
+      name: place.name || place.location?.address || "Unknown place",
+      lat: place.geocodes?.main?.latitude,
+      lon: place.geocodes?.main?.longitude,
+      address: place.location?.formatted_address || "No address",
     }));
+    
   } catch (err) {
     console.log("❌ Foursquare API error:", err);
     return [];
@@ -119,14 +148,23 @@ export const findNearbyPlaces = async (lat, lon, type) => {
 // ===============================
 // MAIN FUNCTION
 // ===============================
+let cachedLocation = null;
+
 export const checkNearbyForTask = async (task) => {
-  const location = await getUserLocation();
-  if (!location) return null;
+  if (!cachedLocation) {
+    cachedLocation = await getUserLocation();
+  }
+
+  if (!cachedLocation) return null;
 
   const type = getPlaceType(task.taskName);
   if (!type) return null;
 
-  const places = await findNearbyPlaces(location.latitude, location.longitude, type);
+  const places = await findNearbyPlaces(
+    cachedLocation.latitude,
+    cachedLocation.longitude,
+    type
+  );
 
   return {
     count: places.length,
