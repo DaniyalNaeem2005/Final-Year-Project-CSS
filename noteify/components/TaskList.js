@@ -141,7 +141,6 @@ export default function TaskList() {
 </Text>
     </TouchableOpacity>
 
-    {/* ✅ PREVIEW */}
     {nearbyInfo[item.id].places.slice(0, 2).map((place, index) => (
       <Text key={index} style={{ fontSize: 12, color: "#666" }}>
         • {place.name || place.address || "Nearby place"}
