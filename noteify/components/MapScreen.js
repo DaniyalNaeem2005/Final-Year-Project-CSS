@@ -1,245 +1,516 @@
-
-import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator, Platform, Text } from "react-native";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  TouchableOpacity,
+} from "react-native";
 import * as Location from "expo-location";
-import { useRoute } from "@react-navigation/native";
-
-let MapView, Marker;
-
-if (Platform.OS !== "web") {
-  MapView = require("react-native-maps").default;
-  Marker = require("react-native-maps").Marker;
-}
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function MapScreen() {
   const [location, setLocation] = useState(null);
   const [places, setPlaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [nearPlace, setNearPlace] = useState(null);
 
-  const route = useRoute();
-  const { nearbyInfo } = route.params || {};
+  const alertedRef = useRef({});
 
-console.log("🧠 nearbyInfo received:", nearbyInfo);
   // ===============================
-  // 🔄 EXTRACT PLACES FROM TASK LIST DATA
+  // TASK → TYPE
   // ===============================
-  const extractPlacesFromNearby = (nearbyInfo) => {
-    if (!nearbyInfo) return [];
+  const getType = (taskName) => {
+    const lower = taskName.toLowerCase();
 
-    let allPlaces = [];
+    if (
+      lower.includes("gym") ||
+      lower.includes("workout") ||
+      lower.includes("exercise")
+    )
+      return "Gym";
 
-    Object.values(nearbyInfo).forEach((item) => {
-      if (item?.places?.length > 0) {
-        allPlaces = [...allPlaces, ...item.places];
+    if (
+      lower.includes("grocery") ||
+      lower.includes("groceries") ||
+      lower.includes("shopping") ||
+      lower.includes("mart") ||
+      lower.includes("store")
+    )
+      return "Grocery";
+
+    if (
+      lower.includes("coffee") ||
+      lower.includes("cafe") ||
+      lower.includes("tea")
+    )
+      return "Cafe";
+
+    if (
+      lower.includes("food") ||
+      lower.includes("eat") ||
+      lower.includes("restaurant") ||
+      lower.includes("dinner") ||
+      lower.includes("lunch")
+    )
+      return "Restaurant";
+
+    if (
+      lower.includes("doctor") ||
+      lower.includes("hospital") ||
+      lower.includes("clinic")
+    )
+      return "Hospital";
+
+    return null;
+  };
+
+  // ===============================
+  // COLOR SYSTEM
+  // ===============================
+  const getDistanceColor = (minutes) => {
+    if (minutes < 1) return "#22c55e";
+    if (minutes < 5) return "#f59e0b";
+    if (minutes < 10) return "#ec4899";
+    return "#ef4444";
+  };
+
+  // ===============================
+  // FAKE DEMO LOCATION
+  // ===============================
+  const [fakeLocation, setFakeLocation] = useState(null);
+  const activeLocation = fakeLocation || location;
+
+  // 🔥 CENTRAL PROXIMITY CHECK (FIXED LOGIC)
+  const checkProximity = (user, list) => {
+    if (!user || !list.length) return;
+
+    list.forEach((place) => {
+      const dist = getDistance(
+        user.latitude,
+        user.longitude,
+        place.latitude,
+        place.longitude
+      );
+
+      const meters = dist * 1000;
+      const minutes = meters / 80;
+
+      // ✅ YOUR REQUIREMENT: 2 minutes or less
+      if (minutes <= 2 && !alertedRef.current[place.id]) {
+        alertedRef.current[place.id] = true;
+
+        setNearPlace({
+          ...place,
+          distance: Math.round(meters),
+        });
       }
     });
-
-    return allPlaces;
   };
 
   // ===============================
-  // 📍 LOAD DATA
+  // DEMO CONTROLS (FIXED)
   // ===============================
-  useEffect(() => {
-    loadData();
-  }, []);
+  const moveCloser = () => {
+    if (!activeLocation || !places.length) return;
 
+    const target = places[0];
+
+    const newLoc = {
+      latitude:
+        activeLocation.latitude +
+        (target.latitude - activeLocation.latitude) * 0.5,
+      longitude:
+        activeLocation.longitude +
+        (target.longitude - activeLocation.longitude) * 0.5,
+    };
+
+    setFakeLocation(newLoc);
+    checkProximity(newLoc, places);
+  };
+
+  const moveFarther = () => {
+    if (!activeLocation) return;
+
+    const target = places[0];
+
+    const newLoc = {
+      latitude:
+        activeLocation.latitude -
+        (target.latitude - activeLocation.latitude) * 0.5,
+      longitude:
+        activeLocation.longitude -
+        (target.longitude - activeLocation.longitude) * 0.5,
+    };
+
+    setFakeLocation(newLoc);
+    checkProximity(newLoc, places);
+  };
+
+  const resetLocation = () => {
+    setFakeLocation(null);
+    if (location) checkProximity(location, places);
+  };
+
+  // ===============================
+  // GENERATE FAKE POINTS
+  // ===============================
+  const generateNearby = (lat, lon, type, taskName) => {
+    const offset = () => (Math.random() - 0.5) * 0.005;
+
+    return {
+      id: Math.random().toString(),
+      name: `${taskName} location`,
+      latitude: lat + offset(),
+      longitude: lon + offset(),
+      type,
+      taskName,
+    };
+  };
+
+  // ===============================
+  // DISTANCE FUNCTION
+  // ===============================
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // ===============================
+  // LOAD DATA
+  // ===============================
   const loadData = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") return;
+    try {
+      setLoading(true);
 
-    const loc = await Location.getCurrentPositionAsync({});
-    setLocation(loc.coords);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
 
-    // ✅ USE EXISTING DATA FROM TASK LIST
-    const extractedPlaces = extractPlacesFromNearby(nearbyInfo);
+      const loc = await Location.getCurrentPositionAsync({});
+      setLocation(loc.coords);
 
-    console.log("📍 PLACES FROM TASK LIST:", extractedPlaces);
+      const stored = await AsyncStorage.getItem("TASKS");
+      const tasks = stored ? JSON.parse(stored) : [];
 
-    setPlaces(extractedPlaces);
+      const generated = [];
+
+      tasks.forEach((task) => {
+        const type = getType(task.taskName);
+        if (!type) return;
+
+        generated.push(
+          generateNearby(
+            loc.coords.latitude,
+            loc.coords.longitude,
+            type,
+            task.taskName
+          )
+        );
+      });
+
+      setPlaces(generated);
+
+      Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          distanceInterval: 5,
+        },
+        (pos) => {
+          const user = pos.coords;
+          setLocation(user);
+
+          checkProximity(user, generated);
+        }
+      );
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ===============================
-  // 🌐 WEB VIEW (GOOGLE MAPS)
-  // ===============================
-  if (Platform.OS === "web") {
-    if (!location) return <ActivityIndicator />;
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, [])
+  );
 
-    const lat = location.latitude;
-    const lon = location.longitude;
-
-    if (!places.length) {
-      return (
-        <View style={{ padding: 20 }}>
-          <Text>No nearby places found for your tasks.</Text>
-        </View>
-      );
-    }
-
-    // Use first place type for search
-    const firstPlace = places[0];
-    const query = firstPlace?.name || "places";
-
-    const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(
-      query
-    )}+near+${lat},${lon}&z=14&output=embed`;
-
+  if (loading || !activeLocation) {
     return (
-      <View style={{ flex: 1 }}>
-        <iframe
-          src={mapUrl}
-          style={{ width: "100%", height: "100%", border: "none" }}
-          loading="lazy"
-        />
-      </View>
-    );
-  }
-
-  // ===============================
-  // 📱 MOBILE MAP
-  // ===============================
-  if (!location) return <ActivityIndicator />;
-
-  if (!places.length) {
-    return (
-      <View style={{ padding: 20 }}>
-        <Text>No nearby places found for your tasks.</Text>
+      <View style={styles.center}>
+        <ActivityIndicator />
+        <Text style={{ color: "#fff" }}>Loading smart map...</Text>
       </View>
     );
   }
 
   return (
-    <MapView
-      style={{ flex: 1 }}
-      initialRegion={{
-        latitude: location.latitude,
-        longitude: location.longitude,
-        latitudeDelta: 0.08,
-        longitudeDelta: 0.08,
-      }}
-    >
-      {/* 📍 USER LOCATION */}
-      <Marker
-        coordinate={{
-          latitude: location.latitude,
-          longitude: location.longitude,
-        }}
-        title="You are here"
-      />
+    <View style={styles.container}>
+      {/* HEADER */}
+      <View style={styles.headerCard}>
+        <Text style={styles.heading}>🗺️ Smart Task Map</Text>
+        <Text style={styles.user}>
+          📍 {activeLocation.latitude.toFixed(4)},{" "}
+          {activeLocation.longitude.toFixed(4)}
+        </Text>
+      </View>
 
-      {/* 📍 TASK-BASED PLACES */}
-      {places.map((place, index) => (
-        <Marker
-          key={index}
-          coordinate={{
-            latitude: place.lat,
-            longitude: place.lon,
-          }}
-          title={place.name || "Place"}
-          description={place.address || ""}
-        />
-      ))}
-    </MapView>
+      {/* DEMO CONTROLS */}
+      <View style={styles.demoRow}>
+        <TouchableOpacity style={styles.demoBtn} onPress={moveCloser}>
+          <Text style={styles.demoText}>📍 Closer</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.demoBtn} onPress={moveFarther}>
+          <Text style={styles.demoText}>📍 Farther</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.demoBtn} onPress={resetLocation}>
+          <Text style={styles.demoText}>🔁 Reset</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* LIST */}
+      <View style={styles.list}>
+        {places.map((place) => {
+          const dist = getDistance(
+            activeLocation.latitude,
+            activeLocation.longitude,
+            place.latitude,
+            place.longitude
+          );
+
+          const meters = dist * 1000;
+          const minutes = meters / 80;
+          const color = getDistanceColor(minutes);
+
+          return (
+            <View key={place.id} style={styles.row}>
+              <View style={styles.pinCol}>
+                <View style={[styles.dot, { backgroundColor: color }]} />
+                <View style={styles.line} />
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.title}>📌 {place.taskName}</Text>
+
+                <Text style={[styles.meta, { color }]}>
+                  {Math.round(meters)}m away • {minutes.toFixed(1)} min walk
+                </Text>
+
+                <View style={[styles.badge, { backgroundColor: color }]}>
+                  <Text style={styles.badgeText}>{place.type}</Text>
+                </View>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* MODAL */}
+      <Modal visible={!!nearPlace} transparent animationType="slide">
+        <View style={styles.modal}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>📍 You're Nearby!</Text>
+
+            {nearPlace && (
+              <>
+                <Text style={styles.modalText}>
+                  You are {nearPlace.distance} meters away from
+                </Text>
+                <Text style={styles.modalPlace}>
+                  {nearPlace.taskName}
+                </Text>
+              </>
+            )}
+
+            <Text style={styles.close} onPress={() => setNearPlace(null)}>
+              Close
+            </Text>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
-// import React, { useEffect, useState } from "react";
-// import { View, ActivityIndicator, Platform, Text } from "react-native";
-// import * as Location from "expo-location";
+// ===============================
+// STYLES (BRAND MATCHED)
+// ===============================
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFF4E2",
+    padding: 16,
+  },
 
-// let MapView, Marker;
+  headerCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 15,
+    borderLeftWidth: 5,
+    borderLeftColor: "#9E090F",
+  },
 
-// if (Platform.OS !== "web") {
-//   MapView = require("react-native-maps").default;
-//   Marker = require("react-native-maps").Marker;
-// }
+  heading: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#000",
+  },
 
-// export default function MapScreen() {
-//   const [location, setLocation] = useState(null);
-//   const [places, setPlaces] = useState([]);
+  user: {
+    color: "#444",
+    fontSize: 12,
+    marginTop: 4,
+  },
 
-//   useEffect(() => {
-//     loadData();
-//   }, []);
+  list: {
+    flex: 1,
+  },
 
-//   const loadData = async () => {
-//     const { status } = await Location.requestForegroundPermissionsAsync();
-//     if (status !== "granted") return;
+  row: {
+    flexDirection: "row",
+    marginBottom: 18,
+  },
 
-//     const loc = await Location.getCurrentPositionAsync({});
-//     setLocation(loc.coords);
+  pinCol: {
+    width: 30,
+    alignItems: "center",
+  },
 
-//     const lat = loc.coords.latitude;
-//     const lon = loc.coords.longitude;
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginTop: 6,
+  },
 
-//     const url = `
-// https://overpass-api.de/api/interpreter?data=
-// [out:json];
-// node["shop"~"supermarket|grocery|convenience|general"](around:5000,${lat},${lon});
-// node["amenity"="marketplace"](around:5000,${lat},${lon});
-// out;
-// `;
+  line: {
+    width: 2,
+    flex: 1,
+    backgroundColor: "#D6C7B2",
+    marginTop: 2,
+  },
 
-//     try {
-//       const res = await fetch(url);
-//       const data = await res.json();
+  card: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    padding: 14,
+    borderRadius: 14,
+    marginLeft: 10,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
 
-//       console.log("MAP PLACES:", data.elements.length);
+  title: {
+    color: "#000",
+    fontWeight: "700",
+    fontSize: 14,
+    marginBottom: 6,
+  },
 
-//       setPlaces(data.elements);
-//     } catch (err) {
-//       console.log("Map fetch error:", err);
-//     }
-//   };
+  meta: {
+    fontSize: 12,
+    color: "#333",
+    marginBottom: 8,
+  },
 
-//   if (Platform.OS === "web") {
-//   if (!location) return <ActivityIndicator />;
+  badge: {
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+  },
 
-//   const lat = location.latitude;
-//   const lon = location.longitude;
+  badgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
 
-//   const mapUrl = `https://www.google.com/maps?q=${lat},${lon}&z=14&output=embed`;
+  modal: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-//   return (
-//     <View style={{ flex: 1 }}>
-//       <iframe
-//         src={mapUrl}
-//         style={{ width: "100%", height: "100%", border: "none" }}
-//         loading="lazy"
-//       />
-//     </View>
-//   );
-// }
+  modalBox: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 16,
+    width: "85%",
+    alignItems: "center",
+  },
 
-//   if (!location) return <ActivityIndicator />;
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#000",
+  },
 
-//   return (
-//     <MapView
-//       style={{ flex: 1 }}
-//       initialRegion={{
-//         latitude: location.latitude,
-//         longitude: location.longitude,
-//         latitudeDelta: 0.05,
-//         longitudeDelta: 0.05,
-//       }}
-//     >
-//       <Marker
-//         coordinate={{
-//           latitude: location.latitude,
-//           longitude: location.longitude,
-//         }}
-//         title="You are here"
-//       />
+  modalText: {
+    marginTop: 10,
+    textAlign: "center",
+  },
 
-//       {places.map((place, index) => (
-//         <Marker
-//           key={index}
-//           coordinate={{
-//             latitude: place.lat,
-//             longitude: place.lon,
-//           }}
-//           title={place.tags?.name || "Store"}
-//         />
-//       ))}
-//     </MapView>
-//   );
-// }
+  modalPlace: {
+    fontWeight: "700",
+    marginTop: 6,
+    color: "#9E090F",
+  },
+
+  close: {
+    marginTop: 15,
+    color: "#9E090F",
+    fontWeight: "600",
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  demoRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginBottom: 12,
+},
+
+demoBtn: {
+  flex: 1,
+  backgroundColor: "#FFFFFF",
+  paddingVertical: 10,
+  marginHorizontal: 4,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: "#E5E5E5",
+  alignItems: "center",
+
+  // subtle elevation
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowRadius: 4,
+  shadowOffset: { width: 0, height: 2 },
+  elevation: 2,
+},
+
+demoText: {
+  color: "#9E090F",
+  fontWeight: "700",
+  fontSize: 12,
+},
+});
+
