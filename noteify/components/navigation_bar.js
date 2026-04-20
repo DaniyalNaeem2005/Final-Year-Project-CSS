@@ -29,7 +29,7 @@ export default function NavigationBar() {
         options={{
           tabBarIcon: ({ color }) => (
             <Image
-              source={require("../assets/home.png")} // Dummy icon
+              source={require("../assets/home.png")}
               style={{ width: 25, height: 25, tintColor: color }}
             />
           ),
@@ -41,7 +41,7 @@ export default function NavigationBar() {
         options={{
           tabBarIcon: ({ color }) => (
             <Image
-              source={require("../assets/add.png")} // Dummy icon
+              source={require("../assets/add.png")}
               style={{ width: 23, height: 23, tintColor: color }}
             />
           ),
@@ -53,7 +53,7 @@ export default function NavigationBar() {
         options={{
           tabBarIcon: ({ color }) => (
             <Image
-              source={require("../assets/dashboard.png")} // Dummy icon
+              source={require("../assets/dashboard.png")}
               style={{ width: 23, height: 23, tintColor: color }}
             />
           ),
@@ -65,7 +65,7 @@ export default function NavigationBar() {
         options={{
           tabBarIcon: ({ color }) => (
             <Image
-              source={require("../assets/home.png")} // Dummy icon
+              source={require("../assets/home.png")}
               style={{ width: 25, height: 25, tintColor: color }}
             />
           ),
@@ -80,11 +80,9 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 5,
     right: 5,
-    // elevation: 10,
     backgroundColor: "#ffffff",
     borderRadius: 5,
     height: 50,
-    // paddingBottom: 10,
     
   },
 });
