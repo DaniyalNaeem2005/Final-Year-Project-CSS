@@ -1,11 +1,6 @@
 import * as Location from "expo-location";
 import { Platform, Linking } from "react-native";
 
-// ===============================
-// FOURSQUARE API CONFIG
-// ===============================
-const FOURSQUARE_API_KEY = "N4DU3QTLMRWLQ2QQBEUI40VOW0LRWTYFAPVTYYDHMTAWN4JX"; // replace with your key
-const FOURSQUARE_BASE_URL = "https://api.foursquare.com/v3/places/search";
 
 // ===============================
 // GET USER LOCATION
@@ -14,7 +9,7 @@ export const getUserLocation = async () => {
   const { status } = await Location.requestForegroundPermissionsAsync();
 
   if (status !== "granted") {
-    console.log("❌ Location permission denied");
+    console.log("Location permission denied");
     return null;
   }
 
@@ -31,7 +26,7 @@ export const getUserLocation = async () => {
 export const getPlaceType = (taskName) => {
   const text = taskName.toLowerCase();
 
-  // 🛒 Grocery / shopping
+  // Grocery / shopping
   if (
     text.includes("grocery") ||
     text.includes("groceries") ||
@@ -42,7 +37,7 @@ export const getPlaceType = (taskName) => {
     return "grocery";
   }
 
-  // 🏋️ Gym
+  // Gym
   if (
     text.includes("gym") ||
     text.includes("workout") ||
@@ -51,7 +46,7 @@ export const getPlaceType = (taskName) => {
     return "gym";
   }
 
-  // 🍽️ Food
+  // Food
   if (
     text.includes("eat") ||
     text.includes("food") ||
@@ -62,7 +57,7 @@ export const getPlaceType = (taskName) => {
     return "restaurant";
   }
 
-  // ✏️ Stationery / books
+  // Stationery / books
   if (
     text.includes("stationery") ||
     text.includes("books") ||
@@ -76,74 +71,6 @@ export const getPlaceType = (taskName) => {
   return null;
 };
 
-// ===============================
-// FIND NEARBY PLACES
-// ===============================
-export const findNearbyPlaces = async (lat, lon, type) => {
-  // 🌐 WEB FALLBACK: Return Google Maps link
-  if (Platform.OS === "web") {
-  let query = "store";
-
-  if (type === "grocery") query = "grocery store";
-  if (type === "gym") query = "gym";
-  if (type === "restaurant") query = "restaurant";
-  if (type === "stationery") query = "stationery shop";
-
-  return [
-    {
-      name: `Search ${query} nearby`,
-      mapLink: `https://www.google.com/maps/search/${encodeURIComponent(
-        query
-      )}/@${lat},${lon},14z`,
-    },
-  ];
-}
-
-  // MOBILE: Use Foursquare API
-  let category = "";
-  switch (type) {
-    case "grocery":
-      category = "13065"; // grocery stores
-      break;
-    case "gym":
-      category = "18018"; // fitness center
-      break;
-    case "restaurant":
-      category = "13065"; // restaurants
-      break;
-    case "stationery":
-      category = "17114"; // bookstore / office supplies
-      break;
-    default:
-      return [];
-  }
-
-  const url = `${FOURSQUARE_BASE_URL}?ll=${lat},${lon}&categories=${category}&radius=5000&limit=20`;
-
-  try {
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        Authorization: FOURSQUARE_API_KEY,
-      },
-    });
-
-    const data = await res.json();
-    console.log("✅ Places found:", data.results?.length || 0);
-    console.log("PLACES FOR TASK:", task.taskName, places);
-    return (data.results || []).map((place) => ({
-      id: place.fsq_id,
-      name: place.name || place.location?.address || "Unknown place",
-      lat: place.geocodes?.main?.latitude,
-      lon: place.geocodes?.main?.longitude,
-      address: place.location?.formatted_address || "No address",
-    }));
-    
-  } catch (err) {
-    console.log("❌ Foursquare API error:", err);
-    return [];
-  }
-};
 
 // ===============================
 // MAIN FUNCTION

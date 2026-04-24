@@ -23,14 +23,21 @@ export default function Page2({ navigation }) {
 
 // Converting the date from YYYY-MM-DD to DD/MM/YYYY
   const formatDate = (dateString) => {
+    //If input is null returns empty
     if (!dateString) return "";
 
+//Split the string using a seperator '-'
+//2026-04-22 -> ["2026", "04", "22"]
     const [year, month, day] = dateString.split("-");
+    //Rearrange values into DD/MM/YYYY format
+    // ` used to easily input values in the variables
     return `${day}/${month}/${year}`;
   };
 
 // Saves tasks to the local AsynchStorage
   const saveTask = async () => {
+    //.trim() removes extra spaces from start/end
+    //If after trmiinig the string is empty -> invaid input
     if (!taskName.trim()) {
       Alert.alert("Validation", "Task Name is required");
       return;
@@ -39,6 +46,7 @@ export default function Page2({ navigation }) {
   // Check if due date is empty
     if (!dueDate.trim()) {
       Alert.alert("Validation", "Please select a due date");
+    //  Stop execution if due date is missing
       return;
     }
 
@@ -106,9 +114,9 @@ export default function Page2({ navigation }) {
           dropdownIconColor="#9E090F"
           style={styles.picker}
         >
-          <Picker.Item label="📚 Study" value="Study" />
-          <Picker.Item label="🏠 Personal" value="Personal" />
-          <Picker.Item label="💼 Work" value="Work" />
+          <Picker.Item label="Study" value="Study" />
+          <Picker.Item label="Personal" value="Personal" />
+          <Picker.Item label="Work" value="Work" />
         </Picker>
       </View>
 
@@ -144,9 +152,12 @@ export default function Page2({ navigation }) {
         <TextInput
           style={styles.input}
           value={dueDate}
+          editable={false}
+          readOnly={true}
           onChangeText={setDueDate}
           placeholder="DD/MM/YYYY"
           placeholderTextColor="#999"
+          onKeyDown={(e) => e.preventDefault()}
         />
       )}
 

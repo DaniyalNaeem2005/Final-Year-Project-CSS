@@ -12,6 +12,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import TopBanner from "./Top_Banner";
 import { groupTasksWithAI } from "./aiService";
+import { logAllStorage } from "./storageDebugger";
 
 export default function TaskList() {
   const [tasks, setTasks] = useState([]); // all tasks from storage
@@ -46,6 +47,7 @@ export default function TaskList() {
     try {
       const storedTasks = await AsyncStorage.getItem("TASKS");
       const parsedTasks = storedTasks ? JSON.parse(storedTasks) : [];
+      await logAllStorage();
       setTasks(parsedTasks);
       loadNearbyData(parsedTasks);
     } catch (error) {

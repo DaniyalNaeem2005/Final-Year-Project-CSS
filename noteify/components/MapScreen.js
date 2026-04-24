@@ -10,14 +10,18 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { useFocusEffect } from "@react-navigation/native";
+//Memorizes function to avoid unnecessary runs
 import { useCallback } from "react";
+//Access device GPS
 import * as Location from "expo-location";
 
 
 
+// Converts tasks into a category
 const classifyTaskIntent = (text) => {
-  const t = text.toLowerCase();
+  const t = text.toLowerCase(); //normalize text
 
+// Check for key words and return category
 // GYM
   if (
     t.includes("gym") ||
@@ -97,6 +101,7 @@ const classifyTaskIntent = (text) => {
   return null;
 };
 
+// Converts category into an Overpass API query
 const getOSMQuery = (type) => {
   switch (type) {
 
@@ -172,7 +177,7 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
-// Haversine formulae to calculate distance on a sphere
+// Haversine formula to calculate distance on a sphere
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
@@ -182,6 +187,7 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 // Concert into kilometers
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
+
 
 // Overpass API to fetch places
 const fetchOverpassSafe = async (query) => {
@@ -200,18 +206,18 @@ const fetchOverpassSafe = async (query) => {
       text.includes("<?xml") ||
       !text.trim().startsWith("{")
     ) {
-      console.log("⚠️ Overpass fallback triggered (non-JSON)");
+      console.log("Overpass fallback triggered (non-JSON)");
       return null;
     }
 
     return JSON.parse(text);
   } catch (err) {
-    console.log("❌ Fetch error:", err.message);
+    console.log("Fetch error:", err.message);
     return null;
   }
 };
 
-// Cache Key to save results locally
+// Creates a unique API Key to save results locally
 const getCacheKey = (intent) => `OSM_CACHE_${intent}`;
 
 // Map Screen components
@@ -250,7 +256,7 @@ useEffect(() => {
     }
   });
 
-  setNearPlace(closest);
+  setNearPlace(closest); //set nearest place reached
 }, [activeLocation, places, visitedTasks]);
 
 // Auto close popup 
@@ -273,10 +279,18 @@ useEffect(() => {
 
 // Moving closer to the location
   const moveCloser = () => {
+    // Exit function if we dont have any locations
   if (!activeLocation || !places.length) return;
 
+// Select the first place in the list
   const target = places[0];
 
+// update the location using the CTA
+// New latitude = current + half the distance towards the target
+// (target - current) = total distance
+// multiply by 0.5 to move halfway
+// add to current = new position
+// sets for both longitude and latitude
   setFakeLocation({
     latitude:
       activeLocation.latitude +

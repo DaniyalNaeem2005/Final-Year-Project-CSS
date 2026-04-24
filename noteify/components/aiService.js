@@ -1,3 +1,4 @@
+// API used to organize tasks in the task list
 const OPENROUTER_API_KEY = "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"; 
 
 // Sends tasks to AI and gets them grouped intelligently
