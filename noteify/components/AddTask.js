@@ -20,7 +20,7 @@ export default function Page2({ navigation }) {
   const [taskType, setTaskType] = useState("Study");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("Anytime");
+  const [dueTime, setDueTime] = useState("");
 
 // Converting the date from YYYY-MM-DD to DD/MM/YYYY
   const formatDate = (dateString) => {
@@ -185,11 +185,7 @@ const newTask = {
       }}
     />
 
-    <TouchableOpacity onPress={() => setDueTime("Anytime")}>
-      <Text style={{ color: "#9E090F", fontWeight: "600" }}>
-        No specific time (Anytime)
-      </Text>
-    </TouchableOpacity>
+    
   </div>
 ) : (
   <View style={styles.dropdownWrapper}>
@@ -198,7 +194,6 @@ const newTask = {
       onValueChange={(itemValue) => setDueTime(itemValue)}
       style={styles.picker}
     >
-      <Picker.Item label="Anytime" value="Anytime" />
       <Picker.Item label="09:00 AM" value="09:00 AM" />
       <Picker.Item label="12:00 PM" value="12:00 PM" />
       <Picker.Item label="03:00 PM" value="03:00 PM" />
