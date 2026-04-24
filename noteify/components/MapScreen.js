@@ -206,13 +206,13 @@ const fetchOverpassSafe = async (query) => {
       text.includes("<?xml") ||
       !text.trim().startsWith("{")
     ) {
-      console.log("Overpass fallback triggered (non-JSON)");
+      console.log(" Overpass fallback triggered (non-JSON)");
       return null;
     }
 
     return JSON.parse(text);
   } catch (err) {
-    console.log("Fetch error:", err.message);
+    console.log(" Fetch error:", err.message);
     return null;
   }
 };
@@ -279,18 +279,10 @@ useEffect(() => {
 
 // Moving closer to the location
   const moveCloser = () => {
-    // Exit function if we dont have any locations
   if (!activeLocation || !places.length) return;
 
-// Select the first place in the list
   const target = places[0];
 
-// update the location using the CTA
-// New latitude = current + half the distance towards the target
-// (target - current) = total distance
-// multiply by 0.5 to move halfway
-// add to current = new position
-// sets for both longitude and latitude
   setFakeLocation({
     latitude:
       activeLocation.latitude +
@@ -383,11 +375,16 @@ useFocusEffect(
             }
 
             bestPlace = {
-              name: closest?.tags?.name || "Unknown",
-              latitude: closest?.lat || closest?.center?.lat,
-              longitude: closest?.lon || closest?.center?.lon,
-              distanceMeters: Math.round(minDist * 1000),
-            };
+            name: closest?.tags?.name || "Unknown",
+            city: closest?.tags?.["addr:city"] || 
+                  closest?.tags?.["addr:town"] || 
+                  closest?.tags?.["addr:village"] || 
+                  "",
+            area: closest?.tags?.["addr:suburb"] || "",
+            latitude: closest?.lat || closest?.center?.lat,
+            longitude: closest?.lon || closest?.center?.lon,
+            distanceMeters: Math.round(minDist * 1000),
+          };
 
 // Save to cache for faster future loads
             await AsyncStorage.setItem(cacheKey, JSON.stringify(bestPlace));
@@ -471,7 +468,11 @@ useFocusEffect(
 
               <View style={styles.card}>
                 <Text style={styles.title}>📌 {place.taskName}</Text>
-                <Text style={styles.placeName}>🏷 {place.name}</Text>
+                <Text style={styles.placeName}>
+                  🏷 {place.name}
+                  {place.area ? `, ${place.area}` : ""}
+                  {place.city ? `, ${place.city}` : ""}
+                </Text>
 
                 <Text style={[styles.meta, { color }]}>
                   {Math.round(meters)}m • {minutes.toFixed(1)} min

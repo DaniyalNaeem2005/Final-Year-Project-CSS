@@ -115,7 +115,9 @@ export default function TaskList() {
     <View style={styles.card} key={item.id}>
       <Text style={styles.title}>{item.taskName}</Text>
       <Text style={styles.meta}>Type: {item.taskType}</Text>
-      <Text style={styles.meta}>Due: {item.dueDate}</Text>
+      <Text style={styles.meta}>
+        Due: {item.dueDate} • {item.dueTime || "Anytime"}
+      </Text>
 
       {item.description && (
         <Text style={styles.description}>{item.description}</Text>
@@ -194,8 +196,8 @@ export default function TaskList() {
   );
 
   const filteredTasks = tasks.filter((task) => {
-  if (filter === "All") return true;
   if (filter === "In Progress") return !task.completed;
+  if (filter === "History") return task.completed;
   return true;
 });
 
@@ -209,11 +211,7 @@ export default function TaskList() {
 
 
       <View style={styles.filterRow}>
-  <TouchableOpacity onPress={() => setFilter("All")}>
-    <Text style={[styles.filterBtn, filter === "All" && styles.activeFilter]}>
-      All
-    </Text>
-  </TouchableOpacity>
+  
 
   <TouchableOpacity onPress={() => setFilter("In Progress")}>
     <Text
@@ -223,6 +221,17 @@ export default function TaskList() {
       ]}
     >
       In Progress
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={() => setFilter("History")}>
+    <Text
+      style={[
+        styles.filterBtn,
+        filter === "History" && styles.activeFilter,
+      ]}
+    >
+      History
     </Text>
   </TouchableOpacity>
 </View>

@@ -25,6 +25,7 @@ export const groupTasksWithAI = async (tasks, organizeType) => {
         `;
     }
 
+// Prompt for the Ai 
     const prompt = `
       You are a smart task manager.
 
@@ -100,6 +101,7 @@ export const groupTasksWithAI = async (tasks, organizeType) => {
   }
 };
 
+//If Ai fails then fallbackgrouping functiom
 const fallbackGrouping = (tasks) => {
   const today = new Date();
 

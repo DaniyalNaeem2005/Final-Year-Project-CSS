@@ -20,6 +20,7 @@ export default function Page2({ navigation }) {
   const [taskType, setTaskType] = useState("Study");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("Anytime");
 
 // Converting the date from YYYY-MM-DD to DD/MM/YYYY
   const formatDate = (dateString) => {
@@ -51,16 +52,17 @@ export default function Page2({ navigation }) {
     }
 
 // creates a new task object
-    const newTask = {
-      id: Date.now().toString(),
-      taskName,
-      taskType,
-      description,
-      priority: "Medium",
-      dueDate, 
-      completed: false,
-      createdAt: new Date().toISOString(),
-    };
+const newTask = {
+  id: Date.now().toString(),
+  taskName,
+  taskType,
+  description,
+  priority: "Medium",
+  dueDate,
+  dueTime, // NEW
+  completed: false,
+  createdAt: new Date().toISOString(),
+};
 
     try {
       // Get existing tasks from storage
@@ -90,7 +92,11 @@ export default function Page2({ navigation }) {
 
 // Showing the tasks on the homepage
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+  style={styles.container}
+  contentContainerStyle={{ paddingBottom: 50 }}
+  showsVerticalScrollIndicator={false}
+>
       <TopBanner />
 
       <Text style={styles.heading}>Add Task</Text>
@@ -160,6 +166,49 @@ export default function Page2({ navigation }) {
           onKeyDown={(e) => e.preventDefault()}
         />
       )}
+
+      {/* Due Time */}
+<Text style={styles.label}>Due Time</Text>
+
+{Platform.OS === "web" ? (
+  <div style={{ width: "90%" }}>
+    <input
+      type="time"
+      onChange={(e) => setDueTime(e.target.value)}
+      style={{
+        width: "100%",
+        padding: 15,
+        borderRadius: 15,
+        border: "1px solid #eee",
+        fontSize: 14,
+        marginBottom: 10,
+      }}
+    />
+
+    <TouchableOpacity onPress={() => setDueTime("Anytime")}>
+      <Text style={{ color: "#9E090F", fontWeight: "600" }}>
+        No specific time (Anytime)
+      </Text>
+    </TouchableOpacity>
+  </div>
+) : (
+  <View style={styles.dropdownWrapper}>
+    <Picker
+      selectedValue={dueTime}
+      onValueChange={(itemValue) => setDueTime(itemValue)}
+      style={styles.picker}
+    >
+      <Picker.Item label="Anytime" value="Anytime" />
+      <Picker.Item label="09:00 AM" value="09:00 AM" />
+      <Picker.Item label="12:00 PM" value="12:00 PM" />
+      <Picker.Item label="03:00 PM" value="03:00 PM" />
+      <Picker.Item label="05:00 PM" value="05:00 PM" />
+      <Picker.Item label="08:00 PM" value="08:00 PM" />
+    </Picker>
+  </View>
+)}
+
+      
 
       <TouchableOpacity style={styles.button} onPress={saveTask}>
         <Text style={styles.buttonText}>Add Task</Text>
